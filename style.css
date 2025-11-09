@@ -60,7 +60,7 @@ button:hover {
   box-shadow: 0 4px 12px rgba(0, 122, 204, 0.3);
 }
 
-/* Стили для списка задач */
+
 #taskList {
   list-style: none;
   padding: 0;

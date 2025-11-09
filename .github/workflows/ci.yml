@@ -22,7 +22,7 @@ jobs:
     echo "Checking CSS file existence..."
     test -f style.css && echo "✅ style.css exists" || exit 1
 
-    - name: Validate JavaScript file
+   - name: Validate JavaScript file
    run: |
     echo "Checking JS file existence..."
     test -f script.js && echo "✅ script.js exists" || exit 1

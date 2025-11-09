@@ -2,7 +2,7 @@ function addTask() {
   const taskInput = document.getElementById('taskInput');
   const taskText = taskInput.value.trim();
 
-  // Улучшенная валидация
+
   if (taskText === '') {
     showNotification('Введите текст задачи!', 'error');
     return;

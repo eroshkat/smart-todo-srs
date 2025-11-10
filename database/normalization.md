@@ -12,7 +12,7 @@
 - Решено: Устранены транзитивные зависимости
 - Результат: Каждая таблица содержит только атрибуты, зависящие от её PK
 
-- ER-диаграмма
+# ER-диаграмма
   <img width="1140" height="1163" alt="ER rus drawio" src="https://github.com/user-attachments/assets/34fba7f6-c3b4-4b3f-bb8e-e234aae7382a" />
-- Схема нормализации
+# Схема нормализации
   https://github.com/eroshkat/smart-todo-srs/blob/main/database/schema.sql

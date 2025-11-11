@@ -1,7 +1,7 @@
 -- Тестовые данные для Менеджера паролей
 
 INSERT INTO Users (username, email, master_password_hash, is_active) VALUES 
-('alex_ivanov', 'alex@example.com', '$2b$10$N9qo8uLOickgx2ZMRZoMye.KdW9tP2uVW5gRcQpOzBqGZv47q.LK6', TRUE),
+('alex_ivanov', 'alex@example.com', '$2b$10$N9qo8uLOickgx2ZMRZ1Mye.KdW9tP2uVW5gRcQpOzBqGZv47q.LK6', TRUE),
 ('maria_petrova', 'maria@example.com', '$2b$10$N9qo8uLOickgx2ZMRZoMye.KdW9tP2uVW5gRcQpOzBqGZv47q.LK6', TRUE),
 ('sergey_smirnov', 'sergey@example.com', '$2b$10$N9qo8uLOickgx2ZMRZoMye.KdW9tP2uVW5gRcQpOzBqGZv47q.LK6', TRUE);
 

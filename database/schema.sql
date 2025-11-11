@@ -73,7 +73,6 @@ CREATE TABLE Password_History (
     FOREIGN KEY (account_id) REFERENCES Accounts(account_id) ON DELETE CASCADE
 );
 
--- Индексы для оптимизациb
 CREATE INDEX idx_users_username ON Users(username);
 CREATE INDEX idx_users_email ON Users(email);
 CREATE INDEX idx_users_created_at ON Users(created_at);

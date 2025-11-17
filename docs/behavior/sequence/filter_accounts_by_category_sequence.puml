@@ -1,0 +1,77 @@
+@startuml Filter_Accounts_By_Category_Sequence
+
+title Сценарий 3: Фильтрация учетных записей по категориям
+
+actor "Пользователь" as User
+participant "Интерфейс" as UI
+participant "Контроллер" as Controller
+participant "Сервис учетных записей" as AccountService
+participant "Сервис категорий" as CategoryService
+participant "База данных" как DB
+
+User -> UI: Нажимает на выпадающий список "Категории"
+activate User
+activate UI
+
+UI -> UI: Отображает список доступных категорий
+UI -> User: Показывает категории: "Все", "Работа", "Соцсети", "Финансы", "Почта"
+
+User -> UI: Выбирает категорию "Финансы"
+activate UI
+
+UI -> Controller: GET /api/accounts?category_id=3
+activate Controller
+
+Controller -> AccountService: getAccountsByCategory(3)
+activate AccountService
+
+AccountService -> DB: SELECT account_id, title, username, url, \ncategory_id, is_favorite, updated_at \nFROM Accounts \nWHERE category_id = 3 AND user_id = ?\nORDER BY is_favorite DESC, title ASC
+activate DB
+DB --> AccountService: accounts_list
+deactivate DB
+
+AccountService -> CategoryService: getCategoryName(3)
+activate CategoryService
+CategoryService -> DB: SELECT name FROM Categories WHERE category_id = 3
+activate DB
+DB --> CategoryService: "Финансы"
+deactivate DB
+CategoryService --> AccountService: category_name
+deactivate CategoryService
+
+AccountService -> AccountService: formatAccountsData(accounts_list, "Финансы")
+AccountService --> Controller: FilteredAccountsResponse
+deactivate AccountService
+
+Controller --> UI: 200 OK\n{accounts: [...], category: "Финансы", \ncount: 8, total_count: 42}
+deactivate Controller
+
+UI -> UI: Обновляет заголовок: "Учетные записи - Финансы (8)"
+UI -> UI: Отображает только учетные записи выбранной категории
+UI -> UI: Показывает счетчик: "Показано 8 из 42 записей"
+UI -> User: Отображает отфильтрованный список
+
+opt Пользователь меняет категорию
+    User -> UI: Выбирает категорию "Все"
+    activate UI
+    UI -> Controller: GET /api/accounts
+    activate Controller
+    Controller -> AccountService: getAllUserAccounts()
+    activate AccountService
+    AccountService -> DB: SELECT * FROM Accounts WHERE user_id = ?\nORDER BY category_id, title
+    activate DB
+    DB --> AccountService: all_accounts
+    deactivate DB
+    AccountService --> Controller: AllAccountsResponse
+    deactivate AccountService
+    Controller --> UI: 200 OK\n{accounts: [...], category: "Все", count: 42}
+    deactivate Controller
+    UI -> UI: Обновляет список на все учетные записи
+    UI -> User: Показывает полный список
+    deactivate UI
+end
+
+deactivate UI
+deactivate User
+
+@enduml

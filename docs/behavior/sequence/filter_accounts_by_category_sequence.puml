@@ -1,5 +1,4 @@
-@startuml Filter_Accounts_By_Category_Sequence
-
+@startuml
 title Сценарий 3: Фильтрация учетных записей по категориям
 
 actor "Пользователь" as User
@@ -7,7 +6,7 @@ participant "Интерфейс" as UI
 participant "Контроллер" as Controller
 participant "Сервис учетных записей" as AccountService
 participant "Сервис категорий" as CategoryService
-participant "База данных" как DB
+participant "База данных" as DB
 
 User -> UI: Нажимает на выпадающий список "Категории"
 activate User
@@ -25,7 +24,7 @@ activate Controller
 Controller -> AccountService: getAccountsByCategory(3)
 activate AccountService
 
-AccountService -> DB: SELECT account_id, title, username, url, \ncategory_id, is_favorite, updated_at \nFROM Accounts \nWHERE category_id = 3 AND user_id = ?\nORDER BY is_favorite DESC, title ASC
+AccountService -> DB: SELECT account_id, title, username, url,\ncategory_id, is_favorite, updated_at\nFROM Accounts\nWHERE category_id = 3 AND user_id = ?\nORDER BY is_favorite DESC, title ASC
 activate DB
 DB --> AccountService: accounts_list
 deactivate DB
@@ -43,7 +42,7 @@ AccountService -> AccountService: formatAccountsData(accounts_list, "Финан�
 AccountService --> Controller: FilteredAccountsResponse
 deactivate AccountService
 
-Controller --> UI: 200 OK\n{accounts: [...], category: "Финансы", \ncount: 8, total_count: 42}
+Controller --> UI: 200 OK\n{accounts: [...], category: "Финансы",\ncount: 8, total_count: 42}
 deactivate Controller
 
 UI -> UI: Обновляет заголовок: "Учетные записи - Финансы (8)"
@@ -73,5 +72,4 @@ end
 
 deactivate UI
 deactivate User
-
 @enduml

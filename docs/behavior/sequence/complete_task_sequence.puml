@@ -1,0 +1,103 @@
+@startuml Password_Access_Sequence
+
+title Сценарий: Доступ к защищенной учетной записи
+
+actor "Пользователь" as User
+participant "Интерфейс" as UI
+participant "Контроллер" as Controller
+participant "Сервис безопасности" as SecurityService
+participant "Сервис учетных записей" as AccountService
+participant "База данных" as DB
+participant "Сервис аудита" as AuditService
+
+User -> UI: Нажимает на защищенную учетную запись "Банк"
+activate User
+activate UI
+
+UI -> Controller: GET /api/accounts/456/access
+activate Controller
+
+Controller -> SecurityService: verifyAccessPermission(456)
+activate SecurityService
+
+SecurityService -> SecurityService: checkSessionValidity()
+SecurityService -> SecurityService: checkAutoLockTimeout()
+
+alt Сессия истекла или автоблокировка
+    SecurityService --> Controller: AccessDenied("Требуется повторная аутентификация")
+    deactivate SecurityService
+    
+    Controller --> UI: 401 Unauthorized
+    deactivate Controller
+    
+    UI -> User: Показать экран ввода мастер-пароля
+    deactivate UI
+    
+    User -> UI: Вводит мастер-пароль
+    activate UI
+    UI -> Controller: POST /api/auth/verify-master-password
+    activate Controller
+    Controller -> SecurityService: verifyMasterPassword(input)
+    activate SecurityService
+    SecurityService --> Controller: verificationResult
+    deactivate SecurityService
+    Controller --> UI: 200 OK / 401 Unauthorized
+    deactivate Controller
+    
+    UI -> User: Успешная аутентификация / Ошибка
+    deactivate UI
+    deactivate User
+    return
+    
+else Доступ разрешен
+    SecurityService --> Controller: AccessGranted
+    deactivate SecurityService
+    
+    Controller -> AccountService: getAccountDetails(456)
+    activate AccountService
+    
+    AccountService -> DB: SELECT * FROM Accounts WHERE account_id = 456
+    activate DB
+    DB --> AccountService: account_data
+    deactivate DB
+    
+    AccountService -> SecurityService: decryptPassword(encrypted_password)
+    activate SecurityService
+    SecurityService --> AccountService: decrypted_password
+    deactivate SecurityService
+    
+    AccountService --> Controller: AccountDetails
+    deactivate AccountService
+    
+    Controller --> UI: 200 OK\n{account_data}
+    deactivate Controller
+    
+    UI -> UI: Показать модальное окно с данными\n(пароль скрыт, требуется действие для показа)
+    UI -> User: Отображает данные учетной записи
+    
+    User -> UI: Нажимает "Показать пароль"
+    activate UI
+    UI -> Controller: POST /api/audit/log-access\n{account_id: 456, action: "view_password"}
+    activate Controller
+    Controller -> AuditService: logAccess(456, "view_password")
+    activate AuditService
+    AuditService -> DB: INSERT INTO Access_Logs\n(account_id, action, timestamp)
+    activate DB
+    DB --> AuditService: log_id
+    deactivate DB
+    AuditService --> Controller: success
+    deactivate AuditService
+    Controller --> UI: 200 OK
+    deactivate Controller
+    
+    UI -> UI: Отображает пароль в открытом виде\n(запускает таймер на 15 секунд)
+    UI -> User: Показывает пароль
+    
+    UI -> UI: Через 15 секунд автоматически скрывает пароль
+    UI -> UI: Показывает уведомление "Пароль скрыт"
+    
+    deactivate UI
+    deactivate User
+end
+
+@enduml

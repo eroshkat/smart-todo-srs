@@ -1,0 +1,96 @@
+@startuml
+left to right direction
+actor "Пользователь" as User
+
+rectangle "Менеджер паролей" {
+  usecase "Добавление учетной записи" as AddAccount
+  usecase "Просмотр учетных записей" as ViewAccounts
+  usecase "Редактирование учетной записи" as EditAccount
+  usecase "Удаление учетной записи" as DeleteAccount
+  usecase "Поиск учетных записей" as SearchAccounts
+  usecase "Генерация пароля" as GeneratePassword
+  usecase "Управление категориями" as ManageCategories
+  usecase "Экспорт данных" as ExportData
+  usecase "Импорт данных" as ImportData
+  usecase "Настройки безопасности" as SecuritySettings
+  usecase "Резервное копирование" as Backup
+  usecase "Восстановление данных" as Restore
+  usecase "Просмотр истории паролей" as ViewHistory
+  
+  usecase "Валидация данных" as ValidateData
+  usecase "Шифрование пароля" as EncryptPassword
+  usecase "Автосохранение" as AutoSave
+  usecase "Проверка формата" as ValidateFormat
+  usecase "Расшифровка данных" as DecryptData
+  usecase "Формирование архива" as CreateArchive
+  usecase "Шифрование экспорта" as EncryptExport
+  
+  usecase "Фильтрация по категориям" as FilterByCategory
+  usecase "Сортировка по дате" as SortByDate
+  usecase "Поиск по названию" as SearchByName
+  usecase "Расширенный поиск" as AdvancedSearch
+  
+  usecase "Настройка автоблокировки" as AutoLock
+  usecase "Включение 2FA" as Enable2FA
+  usecase "Изменение мастер-пароля" as ChangeMasterPassword
+  usecase "Настройка генератора" as ConfigGenerator
+  
+  usecase "Настройка параметров" as SetParams
+  usecase "Копирование в буфер" as CopyToClipboard
+  
+  usecase "Создание категории" as CreateCategory
+  usecase "Редактирование категории" as EditCategory
+  usecase "Удаление категории" as DeleteCategory
+  
+  usecase "Создание резервной копии" as CreateBackup
+  usecase "Загрузка резервной копии" as LoadBackup
+}
+
+' Include relationships
+AddAccount ..> ValidateData : include
+AddAccount ..> EncryptPassword : include
+EditAccount ..> ValidateData : include
+EditAccount ..> EncryptPassword : include
+EditAccount ..> AutoSave : include
+ImportData ..> ValidateFormat : include
+ImportData ..> DecryptData : include
+ExportData ..> CreateArchive : include
+ExportData ..> EncryptExport : include
+
+' Extend relationships
+ViewAccounts <.. FilterByCategory : extend
+ViewAccounts <.. SortByDate : extend
+ViewAccounts <.. SearchByName : extend
+SearchAccounts <.. AdvancedSearch : extend
+
+SecuritySettings <.. AutoLock : extend
+SecuritySettings <.. Enable2FA : extend
+SecuritySettings <.. ChangeMasterPassword : extend
+SecuritySettings <.. ConfigGenerator : extend
+
+GeneratePassword <.. SetParams : extend
+GeneratePassword <.. CopyToClipboard : extend
+
+ManageCategories <.. CreateCategory : extend
+ManageCategories <.. EditCategory : extend
+ManageCategories <.. DeleteCategory : extend
+
+Backup <.. CreateBackup : extend
+Backup <.. LoadBackup : extend
+
+' Actor associations
+User --> AddAccount
+User --> ViewAccounts
+User --> EditAccount
+User --> DeleteAccount
+User --> SearchAccounts
+User --> GeneratePassword
+User --> ManageCategories
+User --> ExportData
+User --> ImportData
+User --> SecuritySettings
+User --> Backup
+User --> Restore
+User --> ViewHistory
+
+@enduml

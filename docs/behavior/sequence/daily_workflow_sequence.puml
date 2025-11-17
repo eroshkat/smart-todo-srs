@@ -1,0 +1,242 @@
+@startuml
+title Сценарий 4: Комплексный бизнес-процесс управления паролями
+
+actor "Пользователь" as User
+actor "Администратор" as Admin
+participant "Web Интерфейс" as WebUI
+participant "Мобильное Приложение" as MobileApp
+participant "API Gateway" as APIGateway
+participant "Сервис Аутентификации" as AuthService
+participant "Сервис Паролей" as PasswordService
+participant "Сервис Безопасности" as SecurityService
+participant "Сервис Категорий" as CategoryService
+participant "Сервис Аудита" as AuditService
+participant "База Данных" as DB
+participant "Кэш" as Cache
+participant "Сервис Уведомлений" as NotificationService
+
+== Процесс регистрации и настройки ==
+
+User -> WebUI: Регистрация нового аккаунта
+activate WebUI
+WebUI -> APIGateway: POST /api/auth/register
+activate APIGateway
+
+APIGateway -> AuthService: registerUser(userData)
+activate AuthService
+
+AuthService -> DB: CHECK email uniqueness
+activate DB
+DB --> AuthService: email_available
+deactivate DB
+
+AuthService -> SecurityService: hashMasterPassword(password)
+activate SecurityService
+SecurityService --> AuthService: hashed_password
+deactivate SecurityService
+
+AuthService -> DB: INSERT INTO Users\n(username, email, master_password_hash)
+activate DB
+DB --> AuthService: user_id
+deactivate DB
+
+AuthService -> PasswordService: initializeUserSettings(user_id)
+activate PasswordService
+
+PasswordService -> DB: INSERT INTO Security_Settings\nINSERT INTO Password_Generator_Settings
+activate DB
+DB --> PasswordService: success
+deactivate DB
+
+PasswordService -> CategoryService: createDefaultCategories(user_id)
+activate CategoryService
+CategoryService -> DB: INSERT INTO Categories\n(name: 'Работа', 'Соцсети', 'Финансы')
+activate DB
+DB --> CategoryService: category_ids
+deactivate DB
+CategoryService --> PasswordService: default_categories
+deactivate CategoryService
+
+PasswordService --> AuthService: user_initialized
+deactivate PasswordService
+
+AuthService -> AuditService: logRegistration(user_id)
+activate AuditService
+AuditService -> DB: INSERT INTO Audit_Logs
+activate DB
+DB --> AuditService: logged
+deactivate DB
+AuditService --> AuthService: audit_logged
+deactivate AuditService
+
+AuthService --> APIGateway: RegistrationSuccess\n(user_id, session_token)
+deactivate AuthService
+
+APIGateway --> WebUI: 201 Created\n{user_id, message: "Аккаунт создан"}
+deactivate APIGateway
+
+WebUI -> User: Показать приветственный экран\nи предложить импорт данных
+deactivate WebUI
+
+== Процесс ежедневного использования ==
+
+group Ежедневная работа с паролями
+    User -> MobileApp: Открывает приложение
+    activate MobileApp
+    MobileApp -> SecurityService: verifyBiometricAuth()
+    activate SecurityService
+    SecurityService --> MobileApp: auth_success
+    deactivate SecurityService
+    
+    MobileApp -> APIGateway: GET /api/accounts\nAuthorization: Bearer token
+    activate APIGateway
+    APIGateway -> AuthService: validateToken(token)
+    activate AuthService
+    AuthService --> APIGateway: token_valid
+    deactivate AuthService
+    
+    APIGateway -> PasswordService: getUserAccounts(user_id)
+    activate PasswordService
+    PasswordService -> Cache: GET accounts_cache:user_id
+    activate Cache
+    
+    alt Кэш существует
+        Cache --> PasswordService: cached_accounts
+        deactivate Cache
+    else Кэш отсутствует
+        Cache --> PasswordService: cache_miss
+        deactivate Cache
+        PasswordService -> DB: SELECT accounts with categories
+        activate DB
+        DB --> PasswordService: accounts_data
+        deactivate DB
+        PasswordService -> Cache: SET accounts_cache:user_id
+        activate Cache
+        Cache --> PasswordService: cache_updated
+        deactivate Cache
+    end
+    
+    PasswordService --> APIGateway: accounts_list
+    deactivate PasswordService
+    APIGateway --> MobileApp: 200 OK\n{accounts: [...]}
+    deactivate APIGateway
+    
+    MobileApp -> User: Отображает список паролей\nс категориями и поиском
+    deactivate MobileApp
+end
+
+== Процесс добавления нового пароля ==
+
+User -> WebUI: Добавляет новую учетную запись
+activate WebUI
+WebUI -> APIGateway: POST /api/accounts
+activate APIGateway
+
+APIGateway -> PasswordService: createAccount(accountData)
+activate PasswordService
+
+PasswordService -> SecurityService: encryptPassword(plain_password)
+activate SecurityService
+SecurityService --> PasswordService: encrypted_password
+deactivate SecurityService
+
+PasswordService -> DB: INSERT INTO Accounts\n(title, username, encrypted_password, category_id)
+activate DB
+DB --> PasswordService: account_id
+deactivate DB
+
+PasswordService -> AuditService: logPasswordCreation(account_id)
+activate AuditService
+AuditService -> DB: INSERT INTO Audit_Logs
+activate DB
+DB --> AuditService: logged
+deactivate DB
+AuditService --> PasswordService: audit_logged
+deactivate AuditService
+
+PasswordService -> Cache: INVALIDATE accounts_cache:user_id
+activate Cache
+Cache --> PasswordService: cache_invalidated
+deactivate Cache
+
+PasswordService --> APIGateway: AccountCreated\n(account_id, security_level)
+deactivate PasswordService
+
+APIGateway --> WebUI: 201 Created
+deactivate APIGateway
+
+WebUI -> User: Показать уведомление\n"Пароль успешно добавлен"
+deactivate WebUI
+
+== Процесс аудита и мониторинга ==
+
+group Фоновые процессы безопасности
+    Admin -> APIGateway: GET /api/admin/security-report
+    activate APIGateway
+    APIGateway -> AuditService: generateSecurityReport()
+    activate AuditService
+    
+    AuditService -> DB: SELECT security metrics:\n- failed_logins\n- password_changes\n- suspicious_activities
+    activate DB
+    DB --> AuditService: security_data
+    deactivate DB
+    
+    AuditService -> NotificationService: checkAnomalies(security_data)
+    activate NotificationService
+    NotificationService --> AuditService: anomalies_found
+    deactivate NotificationService
+    
+    alt Обнаружены аномалии
+        AuditService -> NotificationService: sendSecurityAlert(admin_email)
+        activate NotificationService
+        NotificationService --> AuditService: alert_sent
+        deactivate NotificationService
+    end
+    
+    AuditService --> APIGateway: SecurityReport\n{metrics, anomalies, recommendations}
+    deactivate AuditService
+    
+    APIGateway --> Admin: 200 OK\n{security_report}
+    deactivate APIGateway
+end
+
+== Процесс синхронизации между устройствами ==
+
+group Синхронизация данных
+    MobileApp -> APIGateway: POST /api/sync/last-update
+    activate MobileApp
+    activate APIGateway
+    
+    APIGateway -> PasswordService: getLastUpdateTimestamp(user_id)
+    activate PasswordService
+    PasswordService -> DB: SELECT MAX(updated_at) FROM Accounts
+    activate DB
+    DB --> PasswordService: last_update
+    deactivate DB
+    PasswordService --> APIGateway: timestamp
+    deactivate PasswordService
+    
+    alt Требуется синхронизация
+        APIGateway -> PasswordService: getChangesSince(timestamp)
+        activate PasswordService
+        PasswordService -> DB: SELECT * FROM Accounts WHERE updated_at > timestamp
+        activate DB
+        DB --> PasswordService: changes
+        deactivate DB
+        PasswordService --> APIGateway: sync_data
+        deactivate PasswordService
+        
+        APIGateway --> MobileApp: 200 OK\n{changes: [...], full_sync: false}
+        deactivate APIGateway
+        
+        MobileApp -> MobileApp: Apply changes to local storage
+        MobileApp -> User: Показать "Данные синхронизированы"
+    else Данные актуальны
+        APIGateway --> MobileApp: 204 No Content
+        deactivate APIGateway
+        MobileApp -> User: Показать "Данные актуальны"
+    end
+    deactivate MobileApp
+end
+
+@enduml

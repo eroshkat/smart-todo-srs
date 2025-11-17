@@ -1,0 +1,71 @@
+@startuml Add_Password_Account_Sequence
+
+actor "Пользователь" as User
+participant "Интерфейс" as UI
+participant "Контроллер" as Controller
+participant "Сервис учетных записей" as AccountService
+participant "Сервис безопасности" as SecurityService
+participant "База данных" as DB
+
+User -> UI: Нажимает "Добавить учетную запись"
+activate User
+activate UI
+
+UI -> UI: Отображает форму ввода
+UI -> User: Показывает поля: название, логин, пароль, URL, категория
+deactivate UI
+
+User -> UI: Заполняет данные формы\n(название: "Gmail", логин: "user@mail.com",\nпароль: "****", URL: "gmail.com", категория: "Почта")
+activate UI
+
+UI -> Controller: POST /api/accounts\n{title: "Gmail", username: "user@mail.com", \npassword: "****", url: "gmail.com", category_id: 1}
+activate Controller
+
+Controller -> AccountService: createAccount(accountData)
+activate AccountService
+
+AccountService -> AccountService: validateAccountData(accountData)
+activate AccountService
+
+alt Данные валидны
+    AccountService -> SecurityService: encryptPassword("****")
+    activate SecurityService
+    SecurityService -> SecurityService: generateSalt()\napplyEncryption()
+    SecurityService --> AccountService: encryptedPassword: "a1b2c3..."
+    deactivate SecurityService
+    
+    AccountService -> DB: INSERT INTO Accounts\n(title, username, encrypted_password, url, category_id, user_id)
+    activate DB
+    DB -> DB: Сохранение записи\nгенерация account_id
+    DB --> AccountService: account_id: 123
+    deactivate DB
+    
+    AccountService -> DB: UPDATE Users SET last_activity = NOW()
+    activate DB
+    DB --> AccountService: success
+    deactivate DB
+    
+    AccountService --> Controller: SuccessResponse(account_id: 123, message: "Учетная запись создана")
+    deactivate AccountService
+    
+    Controller --> UI: 201 Created\n{account_id: 123, message: "Учетная запись создана"}
+    deactivate Controller
+    
+    UI -> UI: Показать уведомление "Учетная запись добавлена"
+    UI -> UI: Обновить список учетных записей
+    UI -> User: Отобразить новую учетную запись в списке\n(показывая только название и категорию)
+    
+else Данные невалидны
+    AccountService --> Controller: ErrorResponse("Некорректные данные: пароль слишком короткий")
+    deactivate AccountService
+    
+    Controller --> UI: 400 Bad Request\n{error: "Некорректные данные: пароль слишком короткий"}
+    deactivate Controller
+    
+    UI -> User: Показать ошибку валидации
+end
+
+deactivate UI
+deactivate User
+
+@enduml
